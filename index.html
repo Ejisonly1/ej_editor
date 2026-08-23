@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EJ Editor">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="description" content="EJ's Code Editor — a full-featured PWA code editor with HTML, CSS, JS and React support">
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+
+  <title>EJ Editor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Git Modal -->
+<div id="git-modal" class="modal-overlay" onclick="if(event.target===this)closeGit()">
+  <div class="modal-box">
+    <h3 class="modal-title">⎇ Push to GitHub</h3>
+    <div class="field"><label>GitHub Token (repo scope)</label><input class="inp" id="gt" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"></div>
+    <div class="field-row">
+      <div class="field"><label>Owner</label><input class="inp" id="go" placeholder="your-username"></div>
+      <div class="field"><label>Repository</label><input class="inp" id="gre" placeholder="my-repo"></div>
+    </div>
+    <div class="field"><label>Branch</label><input class="inp" id="gb" value="main"></div>
+    <div class="field"><label>Commit message</label><input class="inp" id="gm" placeholder="Update from EJ Editor"></div>
+    <div id="gst" class="git-status" style="display:none"></div>
+    <div class="btn-row">
+      <button class="btn btn-git" onclick="gitPush()">Push to GitHub</button>
+      <button class="btn btn-ghost" onclick="closeGit()">Cancel</button>
+    </div>
+    <div class="field"><label>Commit log</label><div class="git-log" id="gl2"><span class="muted">No commits yet.</span></div></div>
+    <p class="hint">Generate token at <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> — select <strong>repo</strong> scope.</p>
+  </div>
+</div>
+
+<!-- Shortcuts Modal -->
+<div id="kb-modal" class="modal-overlay" onclick="if(event.target===this)closeKb()">
+  <div class="modal-box">
+    <h3 class="modal-title">Keyboard Shortcuts</h3>
+    <div class="kb-row"><span>Run code</span><kbd>Ctrl + Enter</kbd></div>
+    <div class="kb-row"><span>Save / Download</span><kbd>Ctrl + S</kbd></div>
+    <div class="kb-row"><span>Find &amp; Replace</span><kbd>Ctrl + F</kbd></div>
+    <div class="kb-row"><span>Format code</span><kbd>Ctrl + Shift + F</kbd></div>
+    <div class="kb-row"><span>New file</span><kbd>Ctrl + N</kbd></div>
+    <div class="kb-row"><span>Toggle sidebar</span><kbd>Ctrl + B</kbd></div>
+    <div class="kb-row"><span>Indent</span><kbd>Tab</kbd></div>
+    <div class="kb-row"><span>Close find bar</span><kbd>Esc</kbd></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-ghost" onclick="closeKb()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- New File Modal -->
+<div id="newfile-modal" class="modal-overlay" onclick="if(event.target===this)closeNewFile()">
+  <div class="modal-box" style="max-width:320px">
+    <h3 class="modal-title">New File</h3>
+    <div class="field"><label>File name</label><input class="inp" id="nf-input" placeholder="e.g. utils.js, about.html" onkeydown="if(event.key==='Enter')confirmNewFile()"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="confirmNewFile()">Create</button>
+      <button class="btn btn-ghost" onclick="closeNewFile()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main IDE -->
+<div id="ide">
+
+  <!-- Titlebar -->
+  <div id="titlebar">
+    <div class="dots"><span class="dot dr"></span><span class="dot dy"></span><span class="dot dg"></span></div>
+    <div id="mode-sw">
+      <button class="mb on" id="btn-v" onclick="setMode('vanilla')">Vanilla</button>
+      <button class="mb" id="btn-r" onclick="setMode('react')">⚛ React</button>
+    </div>
+    <input id="proj-name" value="my-project" title="Click to rename">
+    <div class="tb-group">
+      <button class="tb" onclick="toggleSidebar()" title="File tree (Ctrl+B)">☰</button>
+      <button class="tb" onclick="toggleCDN()">+ CDN</button>
+      <button class="tb" onclick="toggleFind()">⌕</button>
+      <button class="tb" onclick="formatCode()" title="Format (Ctrl+Shift+F)">✦</button>
+      <button class="tb" onclick="toggleLayout()">⊟</button>
+      <button class="tb git-tb" onclick="openGit()">⎇ Git</button>
+      <button class="tb" onclick="downloadCode()" title="Save (Ctrl+S)">⬇</button>
+      <button class="tb" onclick="openKb()">?</button>
+      <button class="tb run-tb" onclick="runCode()">▶ Run</button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div id="body">
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div id="sb-head">
+        <span class="sb-title">Explorer</span>
+        <div style="display:flex;gap:4px">
+          <button class="icon-btn" onclick="openNewFile()" title="New file">+</button>
+          <select id="theme-sel" onchange="setTheme(this.value)" title="Theme">
+            <option value="">GH Dark</option>
+            <option value="dracula">Dracula</option>
+            <option value="monokai">Monokai</option>
+            <option value="nord">Nord</option>
+          </select>
+        </div>
+      </div>
+      <div id="file-list"></div>
+      <div id="sb-bottom">
+        <span id="offline-badge" class="offline-badge">● Online</span>
+        <span id="save-status" class="save-status">● Saved</span>
+      </div>
+    </div>
+
+    <!-- Editor + Preview -->
+    <div id="editor-wrap">
+      <div id="editor-area">
+
+        <!-- Editor column -->
+        <div id="ed-col">
+          <div id="filetabs"></div>
+
+          <!-- Toolbar 2 -->
+          <div id="toolbar2">
+            <button class="t2btn" onclick="formatCode()">Format</button>
+            <button class="t2btn" onclick="toggleFind()">Find</button>
+            <span class="t2label">Font</span>
+            <input type="range" id="font-sz" min="11" max="22" value="14" step="1" oninput="setFont(this.value)">
+            <span id="sz-lbl">14px</span>
+            <span id="cdn-ct" class="t2label" style="margin-left:auto">0 CDN</span>
+          </div>
+
+          <!-- Find bar -->
+          <div id="find-bar">
+            <input id="find-inp" placeholder="Find..." oninput="doFind()">
+            <input id="repl-inp" placeholder="Replace...">
+            <button class="fbar-btn" onclick="doReplace()">Replace</button>
+            <button class="fbar-btn" onclick="doReplaceAll()">All</button>
+            <span id="find-count"></span>
+            <button class="fbar-btn" onclick="toggleFind()">✕</button>
+          </div>
+
+          <!-- CDN bar -->
+          <div id="cdn-bar">
+            <input id="cdn-inp" placeholder="Paste CDN URL..." onkeydown="if(event.key==='Enter')addCDN()">
+            <button class="fbar-btn" onclick="addCDN()">Add</button>
+            <button class="fbar-btn" onclick="toggleCDN()">✕</button>
+          </div>
+          <div id="cdn-tags"></div>
+
+          <!-- React hint -->
+          <div id="react-hint"><span class="react-badge">JSX</span> Write your component — default export renders automatically.</div>
+
+          <!-- Editor -->
+          <div id="ew">
+            <div id="ln"></div>
+            <textarea id="ed" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off"
+              oninput="onEdit()" onkeydown="handleKey(event)" onkeyup="updCur()" onclick="updCur()"></textarea>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div id="preview-wrap">
+          <div id="pbar">
+            <span class="livdot"></span>
+            <span id="pbar-lbl">Live Preview</span>
+            <button class="sm-btn" onclick="runCode()">↺ Refresh</button>
+          </div>
+          <iframe id="pframe" sandbox="allow-scripts"></iframe>
+        </div>
+
+      </div>
+
+      <!-- Console -->
+      <div id="console-panel">
+        <div id="cbar">
+          <span class="ctitle">Console</span>
+          <button class="cclr" onclick="clearConsole()">Clear</button>
+        </div>
+        <div id="cout"><span class="muted">— Output appears here —</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Status bar -->
+  <div id="sbar">
+    <span id="mode-lbl">Vanilla</span>
+    <span id="file-ct">0 files</span>
+    <span id="cur" style="margin-left:auto">Ln 1, Col 1</span>
+    <span id="cc">0 chars</span>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
