@@ -141,12 +141,7 @@ document.getElementById('train-btn').addEventListener('click', run);` }
 ]);
 
 const defaultAngular = () => ([
-  { id: 'ng1', name: 'app.js', ext: 'js', content: `// Angular starter app
-const { Component, NgModule, BrowserModule } = ng.core ? ng : { Component: ng.core.Component, NgModule: ng.core.NgModule };
-
-// Angular uses decorators — @Component defines a UI block
-ng.core.platformBrowserDynamic || (window.ng = window.ng || {});
-
+  { id: 'ng1', name: 'app.js', ext: 'js', content: `// Angular (AngularJS) starter app
 const app = angular.module('ejApp', []);
 
 app.controller('MainCtrl', function($scope) {
@@ -500,7 +495,7 @@ function runCode() {
     addLog('TensorFlow.js ready! Click Train Model to start.', 'cinfo');
   } else if (mode === 'angular') {
     const js = files.map(f => patchC(f.content)).join('\n');
-    frame.srcdoc = `<!DOCTYPE html><html ng-app="ejApp"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#e6edf3;font-family:sans-serif}.card{max-width:420px;margin:30px auto;padding:20px;background:#161b22;border-radius:10px}h1{color:#2563eb}input{padding:8px;border-radius:6px;border:1px solid #444;background:#1e1e1e;color:#fff;width:70%;margin-right:8px}button{padding:8px 14px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;margin:4px}.btn-red{background:#dc2626}.count-box{font-size:2rem;font-weight:bold;color:#fbbf24;margin:10px 0}li{padding:6px 0;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center}.del{background:#dc2626;padding:3px 8px;font-size:12px}</style></head><body><div class="card" ng-controller="MainCtrl"><h1>{{ title }}</h1><div class="count-box">{{ count }}</div><button ng-click="increment()">+1</button><button class="btn-red" ng-click="reset()">Reset</button><br><br><input ng-model="name" placeholder="Type your name..."><br><p ng-if="name" style="color:#22c55e">Hello, {{ name }}!</p><hr style="border-color:#30363d;margin:16px 0"><h3>To-do list</h3><ul style="list-style:none;padding:0"><li ng-repeat="item in items track by $index">{{ item }}<button class="del" ng-click="removeItem($index)">x</button></li></ul><input ng-model="newItem" placeholder="Add a task..." ng-keyup="$event.keyCode==13&&addItem()"><button ng-click="addItem()">Add</button></div>${CPATCH}${cdnS}<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js"><\/script><script>try{${js}}catch(e){__err('Error: '+e.message);}<\/script></body></html>`;
+    frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#e6edf3;font-family:sans-serif}.card{max-width:420px;margin:30px auto;padding:20px;background:#161b22;border-radius:10px}h1{color:#2563eb}input{padding:8px;border-radius:6px;border:1px solid #444;background:#1e1e1e;color:#fff;width:70%;margin-right:8px}button{padding:8px 14px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;margin:4px}.btn-red{background:#dc2626}.count-box{font-size:2rem;font-weight:bold;color:#fbbf24;margin:10px 0}li{padding:6px 0;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center}.del{background:#dc2626;padding:3px 8px;font-size:12px}</style><script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js"><\/script></head><body ng-app="ejApp"><div class="card" ng-controller="MainCtrl"><h1>{{title}}</h1><div class="count-box">{{count}}</div><button ng-click="increment()">+1</button><button class="btn-red" ng-click="reset()">Reset</button><br><br><input ng-model="name" placeholder="Type your name..."><br><p ng-if="name" style="color:#22c55e">Hello, {{name}}!</p><hr style="border-color:#30363d;margin:16px 0"><h3>To-do list</h3><ul style="list-style:none;padding:0"><li ng-repeat="item in items track by $index">{{item}}<button class="del" ng-click="removeItem($index)">x</button></li></ul><input ng-model="newItem" placeholder="Add a task..." ng-keyup="$event.keyCode==13&&addItem()"><button ng-click="addItem()">Add</button></div>${CPATCH}${cdnS}<script>try{${js}}catch(e){__err('Error: '+e.message);}<\/script></body></html>`;
     addLog('Angular app running!', 'cinfo');
   } else {
     const html = files.find(f => f.ext === 'html');
