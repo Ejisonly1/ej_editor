@@ -163,6 +163,83 @@ app.controller('MainCtrl', function($scope) {
 });` }
 ]);
 
+const defaultElectron = () => ([
+  { id: 'e1', name: 'main.js', ext: 'js', content: `// Electron - main process (runs on your computer, not the browser)
+// This is what you'd use to turn EJ Editor into a real desktop app!
+
+// NOTE: Electron can't run in the browser preview.
+// This shows you what the code looks like.
+// To actually run it, you'd need Node.js on your computer.
+
+const { app, BrowserWindow } = require('electron');
+const path = require('path');
+
+function createWindow() {
+  // Create the desktop window
+  const win = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    },
+    titleBarStyle: 'hiddenInset', // Mac-style title bar
+    backgroundColor: '#0d1117'
+  });
+
+  // Load your app into the window
+  win.loadFile('index.html');
+
+  // Open DevTools in development
+  // win.webContents.openDevTools();
+}
+
+// When Electron is ready, create the window
+app.whenReady().then(() => {
+  createWindow();
+
+  // On Mac, re-create window when dock icon is clicked
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+// Quit when all windows are closed (except on Mac)
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+// To package this as a real app, run:
+// npm install electron
+// npx electron .` },
+  { id: 'e2', name: 'package.json', ext: 'js', content: `// package.json - tells Node.js how to run your Electron app
+{
+  "name": "ej-editor-desktop",
+  "version": "1.0.0",
+  "description": "EJ Editor as a desktop app",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.ejshlinger.ejEditor",
+    "productName": "EJ Editor",
+    "mac": {
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}` }
+]);
+
 /* ── State ── */
 let mode = 'vanilla';
 let files = [];
@@ -183,7 +260,7 @@ function loadState() {
     if (raw) {
       const d = JSON.parse(raw);
       mode = d.mode || 'vanilla';
-      files = d.files && d.files.length ? d.files : (mode === 'react' ? defaultReact() : mode === 'three' ? defaultThree() : mode === 'phaser' ? defaultPhaser() : mode === 'vue' ? defaultVue() : mode === 'tf' ? defaultTF() : mode === 'angular' ? defaultAngular() : defaultVanilla());
+      files = d.files && d.files.length ? d.files : (mode === 'react' ? defaultReact() : mode === 'three' ? defaultThree() : mode === 'phaser' ? defaultPhaser() : mode === 'vue' ? defaultVue() : mode === 'tf' ? defaultTF() : mode === 'angular' ? defaultAngular() : mode === 'electron' ? defaultElectron() : defaultVanilla());
       cdnLinks = d.cdnLinks || [];
       const pn = d.projectName;
       if (pn) document.getElementById('proj-name').value = pn;
@@ -497,6 +574,9 @@ function runCode() {
     const js = files.map(f => patchC(f.content)).join('\n');
     frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#e6edf3;font-family:sans-serif}.card{max-width:420px;margin:30px auto;padding:20px;background:#161b22;border-radius:10px}h1{color:#2563eb}input{padding:8px;border-radius:6px;border:1px solid #444;background:#1e1e1e;color:#fff;width:70%;margin-right:8px}button{padding:8px 14px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;margin:4px}.btn-red{background:#dc2626}.count-box{font-size:2rem;font-weight:bold;color:#fbbf24;margin:10px 0}li{padding:6px 0;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center}.del{background:#dc2626;padding:3px 8px;font-size:12px}</style><script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js"><\/script></head><body ng-app="ejApp"><div class="card" ng-controller="MainCtrl"><h1>{{title}}</h1><div class="count-box">{{count}}</div><button ng-click="increment()">+1</button><button class="btn-red" ng-click="reset()">Reset</button><br><br><input ng-model="name" placeholder="Type your name..."><br><p ng-if="name" style="color:#22c55e">Hello, {{name}}!</p><hr style="border-color:#30363d;margin:16px 0"><h3>To-do list</h3><ul style="list-style:none;padding:0"><li ng-repeat="item in items track by $index">{{item}}<button class="del" ng-click="removeItem($index)">x</button></li></ul><input ng-model="newItem" placeholder="Add a task..." ng-keyup="$event.keyCode==13&&addItem()"><button ng-click="addItem()">Add</button></div>${CPATCH}${cdnS}<script>try{${js}}catch(e){__err('Error: '+e.message);}<\/script></body></html>`;
     addLog('Angular app running!', 'cinfo');
+  } else if (mode === 'electron') {
+    frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#e6edf3;font-family:sans-serif;padding:30px}.card{background:#161b22;border-radius:10px;padding:24px;max-width:600px;margin:auto}h1{color:#2563eb;margin-top:0}.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:bold;margin-bottom:16px;background:#fbbf2422;color:#fbbf24;border:1px solid #fbbf24}.file{background:#0d1117;border-radius:8px;padding:16px;margin:12px 0;border:1px solid #30363d}.file-name{color:#58a6ff;font-weight:bold;margin-bottom:8px;font-size:14px}.file-desc{color:#8b949e;font-size:13px;line-height:1.6}.steps{margin-top:20px}.step{display:flex;gap:12px;margin:10px 0;align-items:flex-start}.num{background:#2563eb;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;flex-shrink:0}.step-text{color:#e6edf3;font-size:13px;line-height:1.6}code{background:#0d1117;padding:2px 6px;border-radius:4px;font-family:monospace;color:#79c0ff}.apps{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}.app{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;font-size:13px;color:#8b949e}</style></head><body><div class="card"><h1>Electron Desktop Apps</h1><span class="badge">Runs on Mac, Windows & Linux</span><p style="color:#8b949e;font-size:14px">Electron wraps your web app (HTML, CSS, JS) into a real desktop app. VS Code, Slack, Discord and Figma are all built with Electron!</p><div class="file"><div class="file-name">main.js — The brain</div><div class="file-desc">Controls the desktop window. Opens your app, sets the window size, handles Mac/Windows differences, and manages the app lifecycle.</div></div><div class="file"><div class="file-name">package.json — The blueprint</div><div class="file-desc">Tells Node.js the app name, version, and how to build it into a .app (Mac) or .exe (Windows) file you can share.</div></div><div class="steps"><strong style="color:#e6edf3">How to turn EJ Editor into a desktop app:</strong><div class="step"><div class="num">1</div><div class="step-text">Install Node.js on your Mac from <code>nodejs.org</code></div></div><div class="step"><div class="num">2</div><div class="step-text">In Terminal, run <code>npm install electron</code></div></div><div class="step"><div class="num">3</div><div class="step-text">Run <code>npx electron .</code> to launch the app</div></div><div class="step"><div class="num">4</div><div class="step-text">Run <code>npm run build</code> to package it as a .app file</div></div></div><div style="margin-top:20px"><strong style="color:#e6edf3;font-size:13px">Famous apps built with Electron:</strong><div class="apps"><div class="app">VS Code</div><div class="app">Slack</div><div class="app">Discord</div><div class="app">Figma</div><div class="app">Notion</div><div class="app">Spotify</div></div></div></div></body></html>`;
+    addLog('Electron reference loaded! Check the preview.', 'cinfo');
   } else {
     const html = files.find(f => f.ext === 'html');
     const css  = files.filter(f => f.ext === 'css').map(f => `<style>${f.content}</style>`).join('\n');
@@ -520,21 +600,23 @@ function setMode(m) {
   const isVue = m === 'vue';
   const isTF = m === 'tf';
   const isAngular = m === 'angular';
+  const isElectron = m === 'electron';
   if (isReact) files = defaultReact();
   else if (isThree) files = defaultThree();
   else if (isPhaser) files = defaultPhaser();
   else if (isVue) files = defaultVue();
   else if (isTF) files = defaultTF();
   else if (isAngular) files = defaultAngular();
+  else if (isElectron) files = defaultElectron();
   else files = defaultVanilla();
-  ['btn-v','btn-r','btn-t','btn-p','btn-vue','btn-tf','btn-ng'].forEach(id => {
+  ['btn-v','btn-r','btn-t','btn-p','btn-vue','btn-tf','btn-ng','btn-el'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('on','ron');
   });
-  const activeBtn = isReact?'btn-r':isThree?'btn-t':isPhaser?'btn-p':isVue?'btn-vue':isTF?'btn-tf':isAngular?'btn-ng':'btn-v';
+  const activeBtn = isReact?'btn-r':isThree?'btn-t':isPhaser?'btn-p':isVue?'btn-vue':isTF?'btn-tf':isAngular?'btn-ng':isElectron?'btn-el':'btn-v';
   const el = document.getElementById(activeBtn);
   if (el) el.classList.add(isReact ? 'ron' : 'on');
-  document.getElementById('mode-lbl').textContent = isReact ? 'React + JSX' : isThree ? 'Three.js' : isPhaser ? 'Phaser' : isVue ? 'Vue 3' : isTF ? 'TensorFlow.js' : isAngular ? 'Angular' : 'Vanilla';
+  document.getElementById('mode-lbl').textContent = isReact ? 'React + JSX' : isThree ? 'Three.js' : isPhaser ? 'Phaser' : isVue ? 'Vue 3' : isTF ? 'TensorFlow.js' : isAngular ? 'Angular' : isElectron ? 'Electron' : 'Vanilla';
   document.getElementById('react-hint').style.display = isReact ? 'flex' : 'none';
   activeFile = files[0];
   ed.value = activeFile.content;
