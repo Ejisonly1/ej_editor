@@ -12,6 +12,45 @@ const defaultReact = () => ([
   { id: 'r1', name: 'App.jsx', ext: 'jsx', content: `import { useState } from "react";\n\nexport default function App() {\n  const [count, setCount] = useState(0);\n  const [name, setName] = useState("EJ");\n\n  return (\n    <div style={s.wrap}>\n      <h1 style={s.h1}>Hello, {name}!</h1>\n      <input style={s.inp} value={name} onChange={e => setName(e.target.value)} placeholder="Your name" />\n      <div style={s.card}>\n        <p style={s.num}>{count}</p>\n        <div style={s.row}>\n          <button style={s.btn} onClick={() => setCount(c => c - 1)}>-</button>\n          <button style={s.btn} onClick={() => setCount(c => c + 1)}>+</button>\n          <button style={{...s.btn, background:"#dc2626"}} onClick={() => setCount(0)}>Reset</button>\n        </div>\n      </div>\n    </div>\n  );\n}\n\nconst s = {\n  wrap: { fontFamily:"sans-serif", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh", margin:0, background:"#f0f4ff", padding:"20px" },\n  h1:  { fontSize:"2rem", color:"#2563eb", marginBottom:"1rem" },\n  inp: { padding:"8px 14px", border:"1.5px solid #93c5fd", borderRadius:"8px", fontSize:"1rem", marginBottom:"1.5rem", outline:"none", width:"100%", maxWidth:"260px" },\n  card:{ background:"#fff", borderRadius:"12px", padding:"24px 32px", border:"1px solid #dbeafe", display:"flex", flexDirection:"column", alignItems:"center", gap:"16px" },\n  num: { fontSize:"3.5rem", fontWeight:"700", color:"#1d4ed8", margin:0 },\n  row: { display:"flex", gap:"10px" },\n  btn: { padding:"8px 20px", background:"#2563eb", color:"#fff", border:"none", borderRadius:"8px", fontSize:"1.1rem", cursor:"pointer", fontWeight:"600" }\n};` }
 ]);
 
+const defaultThree = () => ([
+  { id: 't1', name: 'scene.js', ext: 'js', content: `// Three.js starter scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d1117);
+
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
+camera.position.z = 4;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+const material = new THREE.MeshStandardMaterial({ color: 0x2563eb });
+const cube = new THREE.Mesh(geometry, material);
+scene.add(cube);
+
+const light = new THREE.DirectionalLight(0xffffff, 2);
+light.position.set(3, 3, 3);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040));
+
+function animate() {
+  requestAnimationFrame(animate);
+  cube.rotation.x += 0.01;
+  cube.rotation.y += 0.01;
+  renderer.render(scene, camera);
+}
+animate();
+
+console.log("Three.js scene running. Try changing the color or shape!");
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});` }
+]);
+
 /* ── State ── */
 let mode = 'vanilla';
 let files = [];
@@ -32,7 +71,7 @@ function loadState() {
     if (raw) {
       const d = JSON.parse(raw);
       mode = d.mode || 'vanilla';
-      files = d.files && d.files.length ? d.files : (mode === 'react' ? defaultReact() : defaultVanilla());
+      files = d.files && d.files.length ? d.files : (mode === 'react' ? defaultReact() : mode === 'three' ? defaultThree() : defaultVanilla());
       cdnLinks = d.cdnLinks || [];
       const pn = d.projectName;
       if (pn) document.getElementById('proj-name').value = pn;
@@ -326,6 +365,10 @@ function runCode() {
       .replace(/import\s+.*?from\s+['"][^'"]+['"]/g, '');
     frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0}</style></head><body><div id="root"></div>${CPATCH}${cdnS}<script src="https://unpkg.com/react@18/umd/react.development.js"><\/script><script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script><script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script><script type="text/babel">const{useState,useEffect,useRef,useCallback,useMemo,useReducer,useContext,createContext}=React;${code}try{ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));}catch(e){__err('Render error: '+e.message);}<\/script></body></html>`;
     addLog('React app rendered.', 'cinfo');
+  } else if (mode === 'three') {
+    const js = files.map(f => patchC(f.content)).join('\n');
+    frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box;margin:0;overflow:hidden}</style></head><body>${CPATCH}${cdnS}<script src="https://unpkg.com/three@0.160.0/build/three.min.js"><\/script><script>try{${js}}catch(e){__err('Error: '+e.message);}<\/script></body></html>`;
+    addLog('Three.js scene rendered.', 'cinfo');
   } else {
     const html = files.find(f => f.ext === 'html');
     const css  = files.filter(f => f.ext === 'css').map(f => `<style>${f.content}</style>`).join('\n');
@@ -344,11 +387,13 @@ function setMode(m) {
   if (activeFile) activeFile.content = ed.value;
   mode = m;
   const isReact = m === 'react';
-  files = isReact ? defaultReact() : defaultVanilla();
+  const isThree = m === 'three';
+  files = isReact ? defaultReact() : isThree ? defaultThree() : defaultVanilla();
   document.getElementById('btn-r').classList.toggle('ron', isReact);
   document.getElementById('btn-r').classList.toggle('on', false);
-  document.getElementById('btn-v').classList.toggle('on', !isReact);
-  document.getElementById('mode-lbl').textContent = isReact ? 'React + JSX' : 'Vanilla';
+  document.getElementById('btn-v').classList.toggle('on', !isReact && !isThree);
+  document.getElementById('btn-t').classList.toggle('on', isThree);
+  document.getElementById('mode-lbl').textContent = isReact ? 'React + JSX' : isThree ? 'Three.js' : 'Vanilla';
   document.getElementById('react-hint').style.display = isReact ? 'flex' : 'none';
   activeFile = files[0];
   ed.value = activeFile.content;
