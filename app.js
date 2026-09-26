@@ -53,26 +53,16 @@ const config = {
   physics: { default: 'arcade', arcade: { gravity: { y: 400 }, debug: false } },
   scene: { preload, create, update }
 };
-
 const game = new Phaser.Game(config);
 let player, stars, score = 0, scoreText;
-
-function preload() {
-  // Using simple colored rectangles instead of images
-}
-
+function preload() {}
 function create() {
-  // Ground
   const ground = this.add.rectangle(240, 310, 480, 20, 0x2563eb);
   this.physics.add.existing(ground, true);
-
-  // Player (green box)
   player = this.add.rectangle(240, 260, 30, 30, 0x22c55e);
   this.physics.add.existing(player);
   player.body.setCollideWorldBounds(true);
   this.physics.add.collider(player, ground);
-
-  // Stars
   stars = this.physics.add.group();
   for (let i = 0; i < 8; i++) {
     const star = this.add.rectangle(60 + i * 55, 150, 14, 14, 0xfbbf24);
@@ -83,32 +73,50 @@ function create() {
   }
   this.physics.add.collider(stars, ground);
   this.physics.add.overlap(player, stars, collectStar, null, this);
-
-  // Score
   scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '16px', fill: '#ffffff' });
-
-  // Controls
   this.cursors = this.input.keyboard.createCursorKeys();
 }
-
 function update() {
-  if (this.cursors.left.isDown) {
-    player.body.setVelocityX(-200);
-  } else if (this.cursors.right.isDown) {
-    player.body.setVelocityX(200);
-  } else {
-    player.body.setVelocityX(0);
-  }
-  if (this.cursors.up.isDown && player.body.touching.down) {
-    player.body.setVelocityY(-350);
-  }
+  if (this.cursors.left.isDown) { player.body.setVelocityX(-200); }
+  else if (this.cursors.right.isDown) { player.body.setVelocityX(200); }
+  else { player.body.setVelocityX(0); }
+  if (this.cursors.up.isDown && player.body.touching.down) { player.body.setVelocityY(-350); }
 }
-
 function collectStar(player, star) {
   star.destroy();
   score += 10;
   scoreText.setText('Score: ' + score);
 }` }
+]);
+
+const defaultVue = () => ([
+  { id: 'v1', name: 'App.vue', ext: 'js', content: `// Vue 3 starter app
+const { createApp, ref, computed } = Vue;
+
+createApp({
+  template: \`
+    <div style="font-family:sans-serif;max-width:400px;margin:40px auto;padding:20px">
+      <h1 style="color:#2563eb">Hello from Vue!</h1>
+      <p>Count: <strong>{{ count }}</strong></p>
+      <p>Double: <strong>{{ double }}</strong></p>
+      <button @click="count++" style="padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:8px">
+        Click me!
+      </button>
+      <button @click="count=0" style="padding:8px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer">
+        Reset
+      </button>
+      <hr style="margin:20px 0">
+      <input v-model="name" placeholder="Type your name..." style="padding:8px;border-radius:6px;border:1px solid #444;background:#1e1e1e;color:#fff;width:100%">
+      <p v-if="name">Hello, <strong>{{ name }}</strong>!</p>
+    </div>
+  \`,
+  setup() {
+    const count = ref(0);
+    const name = ref('');
+    const double = computed(() => count.value * 2);
+    return { count, name, double };
+  }
+}).mount('#app');` }
 ]);
 
 /* ── State ── */
@@ -131,7 +139,7 @@ function loadState() {
     if (raw) {
       const d = JSON.parse(raw);
       mode = d.mode || 'vanilla';
-      files = d.files && d.files.length ? d.files : (mode === 'react' ? defaultReact() : mode === 'three' ? defaultThree() : mode === 'phaser' ? defaultPhaser() : defaultVanilla());
+      files = d.files && d.files.length ? d.files : (mode === 'react' ? defaultReact() : mode === 'three' ? defaultThree() : mode === 'phaser' ? defaultPhaser() : mode === 'vue' ? defaultVue() : defaultVanilla());
       cdnLinks = d.cdnLinks || [];
       const pn = d.projectName;
       if (pn) document.getElementById('proj-name').value = pn;
@@ -433,6 +441,10 @@ function runCode() {
     const js = files.map(f => patchC(f.content)).join('\n');
     frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box;margin:0;overflow:hidden}canvas{display:block;margin:auto}</style></head><body>${CPATCH}${cdnS}<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"><\/script><script>try{${js}}catch(e){__err('Error: '+e.message);}<\/script></body></html>`;
     addLog('Phaser game running! Use arrow keys to play.', 'cinfo');
+  } else if (mode === 'vue') {
+    const js = files.map(f => patchC(f.content)).join('\n');
+    frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#e6edf3}</style></head><body><div id="app"></div>${CPATCH}${cdnS}<script src="https://unpkg.com/vue@3/dist/vue.global.js"><\/script><script>try{${js}}catch(e){__err('Error: '+e.message);}<\/script></body></html>`;
+    addLog('Vue 3 app running!', 'cinfo');
   } else {
     const html = files.find(f => f.ext === 'html');
     const css  = files.filter(f => f.ext === 'css').map(f => `<style>${f.content}</style>`).join('\n');
@@ -453,13 +465,15 @@ function setMode(m) {
   const isReact = m === 'react';
   const isThree = m === 'three';
   const isPhaser = m === 'phaser';
-  files = isReact ? defaultReact() : isThree ? defaultThree() : isPhaser ? defaultPhaser() : defaultVanilla();
+  const isVue = m === 'vue';
+  files = isReact ? defaultReact() : isThree ? defaultThree() : isPhaser ? defaultPhaser() : isVue ? defaultVue() : defaultVanilla();
   document.getElementById('btn-r').classList.toggle('ron', isReact);
   document.getElementById('btn-r').classList.toggle('on', false);
-  document.getElementById('btn-v').classList.toggle('on', !isReact && !isThree && !isPhaser);
+  document.getElementById('btn-v').classList.toggle('on', !isReact && !isThree && !isPhaser && !isVue);
   document.getElementById('btn-t').classList.toggle('on', isThree);
   document.getElementById('btn-p').classList.toggle('on', isPhaser);
-  document.getElementById('mode-lbl').textContent = isReact ? 'React + JSX' : isThree ? 'Three.js' : isPhaser ? 'Phaser' : 'Vanilla';
+  document.getElementById('btn-vue').classList.toggle('on', isVue);
+  document.getElementById('mode-lbl').textContent = isReact ? 'React + JSX' : isThree ? 'Three.js' : isPhaser ? 'Phaser' : isVue ? 'Vue 3' : 'Vanilla';
   document.getElementById('react-hint').style.display = isReact ? 'flex' : 'none';
   activeFile = files[0];
   ed.value = activeFile.content;
