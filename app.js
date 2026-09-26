@@ -46,10 +46,7 @@ window.addEventListener('resize', () => {
 const defaultPhaser = () => ([
   { id: 'p1', name: 'game.js', ext: 'js', content: `// Phaser 3 starter game
 const config = {
-  type: Phaser.AUTO,
-  width: 480,
-  height: 320,
-  backgroundColor: '#0d1117',
+  type: Phaser.AUTO, width: 480, height: 320, backgroundColor: '#0d1117',
   physics: { default: 'arcade', arcade: { gravity: { y: 400 }, debug: false } },
   scene: { preload, create, update }
 };
@@ -83,9 +80,7 @@ function update() {
   if (this.cursors.up.isDown && player.body.touching.down) { player.body.setVelocityY(-350); }
 }
 function collectStar(player, star) {
-  star.destroy();
-  score += 10;
-  scoreText.setText('Score: ' + score);
+  star.destroy(); score += 10; scoreText.setText('Score: ' + score);
 }` }
 ]);
 
@@ -129,11 +124,9 @@ async function run() {
   status.textContent = 'Training model on y = x * 2...';
   await model.fit(xs, ys, {
     epochs: 100,
-    callbacks: {
-      onEpochEnd: (epoch, logs) => {
-        if (epoch % 20 === 0) status.textContent = 'Training... epoch ' + epoch + ' loss: ' + logs.loss.toFixed(4);
-      }
-    }
+    callbacks: { onEpochEnd: (epoch, logs) => {
+      if (epoch % 20 === 0) status.textContent = 'Training... epoch ' + epoch + ' loss: ' + logs.loss.toFixed(4);
+    }}
   });
   status.textContent = 'Done! Here are the predictions:';
   const results = [];
@@ -145,6 +138,34 @@ async function run() {
   output.innerHTML = results.join('<br>');
 }
 document.getElementById('train-btn').addEventListener('click', run);` }
+]);
+
+const defaultAngular = () => ([
+  { id: 'ng1', name: 'app.js', ext: 'js', content: `// Angular starter app
+const { Component, NgModule, BrowserModule } = ng.core ? ng : { Component: ng.core.Component, NgModule: ng.core.NgModule };
+
+// Angular uses decorators — @Component defines a UI block
+ng.core.platformBrowserDynamic || (window.ng = window.ng || {});
+
+const app = angular.module('ejApp', []);
+
+app.controller('MainCtrl', function($scope) {
+  $scope.title = 'Hello from Angular!';
+  $scope.count = 0;
+  $scope.name = '';
+  $scope.items = ['Learn HTML', 'Learn CSS', 'Learn JavaScript', 'Learn Angular'];
+  $scope.newItem = '';
+
+  $scope.increment = function() { $scope.count++; };
+  $scope.reset = function() { $scope.count = 0; };
+  $scope.addItem = function() {
+    if ($scope.newItem.trim()) {
+      $scope.items.push($scope.newItem.trim());
+      $scope.newItem = '';
+    }
+  };
+  $scope.removeItem = function(idx) { $scope.items.splice(idx, 1); };
+});` }
 ]);
 
 /* ── State ── */
@@ -167,7 +188,7 @@ function loadState() {
     if (raw) {
       const d = JSON.parse(raw);
       mode = d.mode || 'vanilla';
-      files = d.files && d.files.length ? d.files : (mode === 'react' ? defaultReact() : mode === 'three' ? defaultThree() : mode === 'phaser' ? defaultPhaser() : mode === 'vue' ? defaultVue() : mode === 'tf' ? defaultTF() : defaultVanilla());
+      files = d.files && d.files.length ? d.files : (mode === 'react' ? defaultReact() : mode === 'three' ? defaultThree() : mode === 'phaser' ? defaultPhaser() : mode === 'vue' ? defaultVue() : mode === 'tf' ? defaultTF() : mode === 'angular' ? defaultAngular() : defaultVanilla());
       cdnLinks = d.cdnLinks || [];
       const pn = d.projectName;
       if (pn) document.getElementById('proj-name').value = pn;
@@ -477,6 +498,10 @@ function runCode() {
     const js = files.map(f => patchC(f.content)).join('\n');
     frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:20px;background:#0d1117;color:#e6edf3;font-family:sans-serif}button{padding:10px 20px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:16px}#status{margin:16px 0;color:#fbbf24}#output{margin-top:12px;line-height:2;font-size:14px}</style></head><body><h2>TensorFlow.js AI Model</h2><button id="train-btn">Train Model</button><p id="status">Click Train to start!</p><div id="output"></div>${CPATCH}${cdnS}<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"><\/script><script>try{${js}}catch(e){__err('Error: '+e.message);}<\/script></body></html>`;
     addLog('TensorFlow.js ready! Click Train Model to start.', 'cinfo');
+  } else if (mode === 'angular') {
+    const js = files.map(f => patchC(f.content)).join('\n');
+    frame.srcdoc = `<!DOCTYPE html><html ng-app="ejApp"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#e6edf3;font-family:sans-serif}.card{max-width:420px;margin:30px auto;padding:20px;background:#161b22;border-radius:10px}h1{color:#2563eb}input{padding:8px;border-radius:6px;border:1px solid #444;background:#1e1e1e;color:#fff;width:70%;margin-right:8px}button{padding:8px 14px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;margin:4px}.btn-red{background:#dc2626}.count-box{font-size:2rem;font-weight:bold;color:#fbbf24;margin:10px 0}li{padding:6px 0;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center}.del{background:#dc2626;padding:3px 8px;font-size:12px}</style></head><body><div class="card" ng-controller="MainCtrl"><h1>{{ title }}</h1><div class="count-box">{{ count }}</div><button ng-click="increment()">+1</button><button class="btn-red" ng-click="reset()">Reset</button><br><br><input ng-model="name" placeholder="Type your name..."><br><p ng-if="name" style="color:#22c55e">Hello, {{ name }}!</p><hr style="border-color:#30363d;margin:16px 0"><h3>To-do list</h3><ul style="list-style:none;padding:0"><li ng-repeat="item in items track by $index">{{ item }}<button class="del" ng-click="removeItem($index)">x</button></li></ul><input ng-model="newItem" placeholder="Add a task..." ng-keyup="$event.keyCode==13&&addItem()"><button ng-click="addItem()">Add</button></div>${CPATCH}${cdnS}<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js"><\/script><script>try{${js}}catch(e){__err('Error: '+e.message);}<\/script></body></html>`;
+    addLog('Angular app running!', 'cinfo');
   } else {
     const html = files.find(f => f.ext === 'html');
     const css  = files.filter(f => f.ext === 'css').map(f => `<style>${f.content}</style>`).join('\n');
@@ -499,20 +524,22 @@ function setMode(m) {
   const isPhaser = m === 'phaser';
   const isVue = m === 'vue';
   const isTF = m === 'tf';
+  const isAngular = m === 'angular';
   if (isReact) files = defaultReact();
   else if (isThree) files = defaultThree();
   else if (isPhaser) files = defaultPhaser();
   else if (isVue) files = defaultVue();
   else if (isTF) files = defaultTF();
+  else if (isAngular) files = defaultAngular();
   else files = defaultVanilla();
-  ['btn-v','btn-r','btn-t','btn-p','btn-vue','btn-tf'].forEach(id => {
+  ['btn-v','btn-r','btn-t','btn-p','btn-vue','btn-tf','btn-ng'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('on','ron');
   });
-  const activeBtn = isReact?'btn-r':isThree?'btn-t':isPhaser?'btn-p':isVue?'btn-vue':isTF?'btn-tf':'btn-v';
+  const activeBtn = isReact?'btn-r':isThree?'btn-t':isPhaser?'btn-p':isVue?'btn-vue':isTF?'btn-tf':isAngular?'btn-ng':'btn-v';
   const el = document.getElementById(activeBtn);
   if (el) el.classList.add(isReact ? 'ron' : 'on');
-  document.getElementById('mode-lbl').textContent = isReact ? 'React + JSX' : isThree ? 'Three.js' : isPhaser ? 'Phaser' : isVue ? 'Vue 3' : isTF ? 'TensorFlow.js' : 'Vanilla';
+  document.getElementById('mode-lbl').textContent = isReact ? 'React + JSX' : isThree ? 'Three.js' : isPhaser ? 'Phaser' : isVue ? 'Vue 3' : isTF ? 'TensorFlow.js' : isAngular ? 'Angular' : 'Vanilla';
   document.getElementById('react-hint').style.display = isReact ? 'flex' : 'none';
   activeFile = files[0];
   ed.value = activeFile.content;
