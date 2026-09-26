@@ -16,24 +16,19 @@ const defaultThree = () => ([
   { id: 't1', name: 'scene.js', ext: 'js', content: `// Three.js starter scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0d1117);
-
 const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
 camera.position.z = 4;
-
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
-
 const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
 const material = new THREE.MeshStandardMaterial({ color: 0x2563eb });
 const cube = new THREE.Mesh(geometry, material);
 scene.add(cube);
-
 const light = new THREE.DirectionalLight(0xffffff, 2);
 light.position.set(3, 3, 3);
 scene.add(light);
 scene.add(new THREE.AmbientLight(0x404040));
-
 function animate() {
   requestAnimationFrame(animate);
   cube.rotation.x += 0.01;
@@ -41,14 +36,79 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
-
-console.log("Three.js scene running. Try changing the color or shape!");
-
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });` }
+]);
+
+const defaultPhaser = () => ([
+  { id: 'p1', name: 'game.js', ext: 'js', content: `// Phaser 3 starter game
+const config = {
+  type: Phaser.AUTO,
+  width: 480,
+  height: 320,
+  backgroundColor: '#0d1117',
+  physics: { default: 'arcade', arcade: { gravity: { y: 400 }, debug: false } },
+  scene: { preload, create, update }
+};
+
+const game = new Phaser.Game(config);
+let player, stars, score = 0, scoreText;
+
+function preload() {
+  // Using simple colored rectangles instead of images
+}
+
+function create() {
+  // Ground
+  const ground = this.add.rectangle(240, 310, 480, 20, 0x2563eb);
+  this.physics.add.existing(ground, true);
+
+  // Player (green box)
+  player = this.add.rectangle(240, 260, 30, 30, 0x22c55e);
+  this.physics.add.existing(player);
+  player.body.setCollideWorldBounds(true);
+  this.physics.add.collider(player, ground);
+
+  // Stars
+  stars = this.physics.add.group();
+  for (let i = 0; i < 8; i++) {
+    const star = this.add.rectangle(60 + i * 55, 150, 14, 14, 0xfbbf24);
+    this.physics.add.existing(star);
+    star.body.setCollideWorldBounds(true);
+    star.body.setBounceY(0.4);
+    stars.add(star);
+  }
+  this.physics.add.collider(stars, ground);
+  this.physics.add.overlap(player, stars, collectStar, null, this);
+
+  // Score
+  scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '16px', fill: '#ffffff' });
+
+  // Controls
+  this.cursors = this.input.keyboard.createCursorKeys();
+}
+
+function update() {
+  if (this.cursors.left.isDown) {
+    player.body.setVelocityX(-200);
+  } else if (this.cursors.right.isDown) {
+    player.body.setVelocityX(200);
+  } else {
+    player.body.setVelocityX(0);
+  }
+  if (this.cursors.up.isDown && player.body.touching.down) {
+    player.body.setVelocityY(-350);
+  }
+}
+
+function collectStar(player, star) {
+  star.destroy();
+  score += 10;
+  scoreText.setText('Score: ' + score);
+}` }
 ]);
 
 /* ── State ── */
@@ -71,7 +131,7 @@ function loadState() {
     if (raw) {
       const d = JSON.parse(raw);
       mode = d.mode || 'vanilla';
-      files = d.files && d.files.length ? d.files : (mode === 'react' ? defaultReact() : mode === 'three' ? defaultThree() : defaultVanilla());
+      files = d.files && d.files.length ? d.files : (mode === 'react' ? defaultReact() : mode === 'three' ? defaultThree() : mode === 'phaser' ? defaultPhaser() : defaultVanilla());
       cdnLinks = d.cdnLinks || [];
       const pn = d.projectName;
       if (pn) document.getElementById('proj-name').value = pn;
@@ -369,6 +429,10 @@ function runCode() {
     const js = files.map(f => patchC(f.content)).join('\n');
     frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box;margin:0;overflow:hidden}</style></head><body>${CPATCH}${cdnS}<script src="https://unpkg.com/three@0.160.0/build/three.min.js"><\/script><script>try{${js}}catch(e){__err('Error: '+e.message);}<\/script></body></html>`;
     addLog('Three.js scene rendered.', 'cinfo');
+  } else if (mode === 'phaser') {
+    const js = files.map(f => patchC(f.content)).join('\n');
+    frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box;margin:0;overflow:hidden}canvas{display:block;margin:auto}</style></head><body>${CPATCH}${cdnS}<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"><\/script><script>try{${js}}catch(e){__err('Error: '+e.message);}<\/script></body></html>`;
+    addLog('Phaser game running! Use arrow keys to play.', 'cinfo');
   } else {
     const html = files.find(f => f.ext === 'html');
     const css  = files.filter(f => f.ext === 'css').map(f => `<style>${f.content}</style>`).join('\n');
@@ -388,12 +452,14 @@ function setMode(m) {
   mode = m;
   const isReact = m === 'react';
   const isThree = m === 'three';
-  files = isReact ? defaultReact() : isThree ? defaultThree() : defaultVanilla();
+  const isPhaser = m === 'phaser';
+  files = isReact ? defaultReact() : isThree ? defaultThree() : isPhaser ? defaultPhaser() : defaultVanilla();
   document.getElementById('btn-r').classList.toggle('ron', isReact);
   document.getElementById('btn-r').classList.toggle('on', false);
-  document.getElementById('btn-v').classList.toggle('on', !isReact && !isThree);
+  document.getElementById('btn-v').classList.toggle('on', !isReact && !isThree && !isPhaser);
   document.getElementById('btn-t').classList.toggle('on', isThree);
-  document.getElementById('mode-lbl').textContent = isReact ? 'React + JSX' : isThree ? 'Three.js' : 'Vanilla';
+  document.getElementById('btn-p').classList.toggle('on', isPhaser);
+  document.getElementById('mode-lbl').textContent = isReact ? 'React + JSX' : isThree ? 'Three.js' : isPhaser ? 'Phaser' : 'Vanilla';
   document.getElementById('react-hint').style.display = isReact ? 'flex' : 'none';
   activeFile = files[0];
   ed.value = activeFile.content;
