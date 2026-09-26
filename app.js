@@ -93,7 +93,7 @@ const defaultVue = () => ([
   { id: 'v1', name: 'App.vue', ext: 'js', content: `// Vue 3 starter app
 const { createApp, ref, computed } = Vue;
 createApp({
-  template: \\`
+  template: \`
     <div style="font-family:sans-serif;max-width:400px;margin:40px auto;padding:20px">
       <h1 style="color:#2563eb">Hello from Vue!</h1>
       <p>Count: <strong>{{ count }}</strong></p>
@@ -104,7 +104,7 @@ createApp({
       <input v-model="name" placeholder="Type your name..." style="padding:8px;border-radius:6px;border:1px solid #444;background:#1e1e1e;color:#fff;width:100%">
       <p v-if="name">Hello, <strong>{{ name }}</strong>!</p>
     </div>
-  \\`,
+  \`,
   setup() {
     const count = ref(0);
     const name = ref('');
@@ -115,48 +115,35 @@ createApp({
 ]);
 
 const defaultTF = () => ([
-  { id: 'tf1', name: 'model.js', ext: 'js', content: `// TensorFlow.js starter — train a simple model
+  { id: 'tf1', name: 'model.js', ext: 'js', content: `// TensorFlow.js AI model
 async function run() {
   const status = document.getElementById('status');
   const output = document.getElementById('output');
-
   status.textContent = 'Creating model...';
-
-  // Create a simple neural network
   const model = tf.sequential();
   model.add(tf.layers.dense({ units: 8, inputShape: [1], activation: 'relu' }));
   model.add(tf.layers.dense({ units: 1 }));
   model.compile({ optimizer: 'sgd', loss: 'meanSquaredError' });
-
-  // Training data: y = x * 2
-  const xs = tf.tensor2d([1, 2, 3, 4, 5, 6, 7, 8], [8, 1]);
-  const ys = tf.tensor2d([2, 4, 6, 8, 10, 12, 14, 16], [8, 1]);
-
+  const xs = tf.tensor2d([1,2,3,4,5,6,7,8],[8,1]);
+  const ys = tf.tensor2d([2,4,6,8,10,12,14,16],[8,1]);
   status.textContent = 'Training model on y = x * 2...';
-
   await model.fit(xs, ys, {
     epochs: 100,
     callbacks: {
       onEpochEnd: (epoch, logs) => {
-        if (epoch % 20 === 0) {
-          status.textContent = 'Training... epoch ' + epoch + ' loss: ' + logs.loss.toFixed(4);
-        }
+        if (epoch % 20 === 0) status.textContent = 'Training... epoch ' + epoch + ' loss: ' + logs.loss.toFixed(4);
       }
     }
   });
-
-  status.textContent = 'Training complete!';
-
-  // Predict
+  status.textContent = 'Done! Here are the predictions:';
   const results = [];
   for (let i = 1; i <= 10; i++) {
-    const pred = model.predict(tf.tensor2d([i], [1, 1]));
+    const pred = model.predict(tf.tensor2d([i],[1,1]));
     const val = (await pred.data())[0];
-    results.push('Input: ' + i + '  →  Predicted: ' + val.toFixed(2) + '  (expected: ' + (i*2) + ')');
+    results.push('Input: ' + i + ' -> Predicted: ' + val.toFixed(2) + ' (expected: ' + (i*2) + ')');
   }
   output.innerHTML = results.join('<br>');
 }
-
 document.getElementById('train-btn').addEventListener('click', run);` }
 ]);
 
@@ -512,14 +499,19 @@ function setMode(m) {
   const isPhaser = m === 'phaser';
   const isVue = m === 'vue';
   const isTF = m === 'tf';
-  files = isReact ? defaultReact() : isThree ? defaultThree() : isPhaser ? defaultPhaser() : isVue ? defaultVue() : isTF ? defaultTF() : defaultVanilla();
-  document.getElementById('btn-r').classList.toggle('ron', isReact);
-  document.getElementById('btn-r').classList.toggle('on', false);
-  document.getElementById('btn-v').classList.toggle('on', !isReact && !isThree && !isPhaser && !isVue && !isTF);
-  document.getElementById('btn-t').classList.toggle('on', isThree);
-  document.getElementById('btn-p').classList.toggle('on', isPhaser);
-  document.getElementById('btn-vue').classList.toggle('on', isVue);
-  document.getElementById('btn-tf').classList.toggle('on', isTF);
+  if (isReact) files = defaultReact();
+  else if (isThree) files = defaultThree();
+  else if (isPhaser) files = defaultPhaser();
+  else if (isVue) files = defaultVue();
+  else if (isTF) files = defaultTF();
+  else files = defaultVanilla();
+  ['btn-v','btn-r','btn-t','btn-p','btn-vue','btn-tf'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('on','ron');
+  });
+  const activeBtn = isReact?'btn-r':isThree?'btn-t':isPhaser?'btn-p':isVue?'btn-vue':isTF?'btn-tf':'btn-v';
+  const el = document.getElementById(activeBtn);
+  if (el) el.classList.add(isReact ? 'ron' : 'on');
   document.getElementById('mode-lbl').textContent = isReact ? 'React + JSX' : isThree ? 'Three.js' : isPhaser ? 'Phaser' : isVue ? 'Vue 3' : isTF ? 'TensorFlow.js' : 'Vanilla';
   document.getElementById('react-hint').style.display = isReact ? 'flex' : 'none';
   activeFile = files[0];
